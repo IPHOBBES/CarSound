@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Car sounds</title>
+  <style>
+    :root {
+      --panel-w: min(268px, 46vw);
+      --accent: #7ec8ff;
+      --panel-bg: rgba(10, 12, 18, 0.78);
+      --hair: rgba(255, 255, 255, 0.1);
+    }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    #stage {
+      position: fixed;
+      inset: 0;
+      background: #0a0a0f center/cover no-repeat url("background.jpg");
+      --road-opacity: 0.88;
+      --road-width: 72%;
+      --road-bottom: 43vh;
+      --road-height: 3px;
+      --road-glow-amp: 0.75;
+      --car-idle-opacity: 0.66;
+      --car-dim-opacity: 0.42;
+      --car-wobble-rot: 0.182deg;
+      --car-wobble-scale: 1.0098;
+    }
+
+    #road {
+      position: absolute;
+      left: 50%;
+      bottom: var(--road-bottom);
+      transform: translateX(-50%);
+      width: var(--road-width);
+      height: var(--road-height);
+      border-radius: 999px;
+      opacity: var(--road-opacity);
+      pointer-events: none;
+      z-index: 1;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0),
+        rgba(120, 200, 255, 0.55),
+        rgba(255, 255, 255, 0)
+      );
+      box-shadow:
+        0 0 10px rgba(120, 200, 255, 0.55),
+        0 0 22px rgba(80, 160, 255, 0.35),
+        0 0 40px rgba(40, 120, 255, 0.18);
+    }
+
+    #road.road-anim {
+      animation: roadGlowPulse var(--road-anim-dur, 2.85s) ease-in-out infinite;
+    }
+
+    @keyframes roadGlowPulse {
+      0%, 100% {
+        filter: brightness(1);
+        box-shadow:
+          0 0 10px rgba(120, 200, 255, 0.55),
+          0 0 22px rgba(80, 160, 255, 0.35),
+          0 0 40px rgba(40, 120, 255, 0.18);
+      }
+      50% {
+        filter: brightness(calc(1 + var(--road-glow-amp, 0.75) * 0.13));
+        box-shadow:
+          0 0 calc(10px + 9px * var(--road-glow-amp, 0.75)) rgba(120, 200, 255, calc(0.55 + 0.2 * var(--road-glow-amp, 0.75))),
+          0 0 calc(22px + 14px * var(--road-glow-amp, 0.75)) rgba(80, 160, 255, calc(0.35 + 0.2 * var(--road-glow-amp, 0.75))),
+          0 0 calc(40px + 18px * var(--road-glow-amp, 0.75)) rgba(40, 120, 255, calc(0.18 + 0.16 * var(--road-glow-amp, 0.75)));
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #road.road-anim {
+        animation: none;
+      }
+    }
+
+    .car {
+      position: absolute;
+      height: auto;
+      cursor: pointer;
+      user-select: none;
+      z-index: 2;
+      filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.55));
+      opacity: var(--car-idle-opacity);
+      transition: opacity 0.28s ease, filter 0.28s ease;
+      transform-origin: bottom center;
+    }
+
+    #stage.is-audio-playing .car:not(.is-playing) {
+      opacity: var(--car-dim-opacity);
+      filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.55)) saturate(0.78);
+    }
+
+    #stage .car.is-playing {
+      opacity: 1;
+      filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.55));
+      animation: car-idle 0.14s ease-in-out infinite;
+    }
+
+    @keyframes car-idle {
+      0%, 100% { transform: rotate(calc(-1 * var(--car-wobble-rot))) scale(var(--car-wobble-scale)); }
+      50% { transform: rotate(var(--car-wobble-rot)) scale(var(--car-wobble-scale)); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #stage .car.is-playing {
+        animation: none;
+        transform: scale(var(--car-wobble-scale));
+      }
+    }
+
+    #cog {
+      position: fixed;
+      z-index: 4000;
+      left: auto;
+      right: max(8px, env(safe-area-inset-right));
+      bottom: max(6px, env(safe-area-inset-bottom));
+      transform: none;
+      width: 52px;
+      height: 52px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      cursor: pointer;
+      opacity: 0.14;
+      display: grid;
+      place-items: center;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #cog:hover,
+    #cog:focus-visible {
+      opacity: 0.35;
+    }
+    #cog svg {
+      width: 18px;
+      height: 18px;
+      filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.55));
+    }
+
+    #scrim {
+      position: fixed;
+      inset: 0;
+      z-index: 4100;
+      background: rgba(0, 0, 0, 0.22);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+    #scrim.on {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100%;
+      width: var(--panel-w);
+      z-index: 4200;
+      transform: translateX(104%);
+      transition: transform 220ms cubic-bezier(0.2, 0.9, 0.2, 1);
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-left: 1px solid var(--hair);
+      box-sizing: border-box;
+      color: rgba(255, 255, 255, 0.92);
+      display: flex;
+      flex-direction: column;
+    }
+    #panel.on {
+      transform: translateX(0);
+    }
+    .ph {
+      padding: 10px 10px 8px;
+      padding-top: max(10px, env(safe-area-inset-top));
+      border-bottom: 1px solid var(--hair);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .ph h1 {
+      margin: 0;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.86);
+    }
+    .ph small {
+      display: block;
+      margin-top: 3px;
+      font-size: 10px;
+      letter-spacing: 0.02em;
+      text-transform: none;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.45);
+    }
+    #btnClose {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.85);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+    }
+    #carEditors {
+      flex: 1;
+      overflow: auto;
+      padding: 8px 10px 10px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+
+    .sectionLabel {
+      margin: 2px 0 6px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .roadCard {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.035);
+      border-radius: 12px;
+      padding: 8px 8px 7px;
+      margin-bottom: 10px;
+    }
+
+    .roadAnimToggleRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 10px 0 6px;
+      padding: 0 1px;
+    }
+    .roadAnimToggleRow .roadAnimLbl {
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.38);
+      text-transform: uppercase;
+      line-height: 1.2;
+      cursor: pointer;
+    }
+    .roadAnimToggleRow input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .row.row-muted {
+      opacity: 0.42;
+    }
+    .row.row-muted input[type="range"] {
+      opacity: 0.55;
+    }
+
+    .card {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.035);
+      border-radius: 12px;
+      padding: 8px 8px 7px;
+      margin-bottom: 8px;
+    }
+    .cardTop {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .cardTitle {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: rgba(255, 255, 255, 0.86);
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .miniPath {
+      margin-top: 2px;
+      font-size: 9px;
+      color: rgba(255, 255, 255, 0.38);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .btnIcon {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.78);
+      cursor: pointer;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .btnIcon:disabled {
+      opacity: 0.25;
+      cursor: not-allowed;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: minmax(88px, 108px) 1fr 40px;
+      align-items: center;
+      gap: 6px;
+      margin: 5px 0;
+    }
+    .rowLbl {
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.38);
+      text-transform: uppercase;
+      line-height: 1.15;
+      min-width: 0;
+      cursor: default;
+      overflow-wrap: break-word;
+      hyphens: none;
+    }
+    .row .u {
+      font-size: 9px;
+      text-align: right;
+      color: rgba(255, 255, 255, 0.45);
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 16px;
+      background: transparent;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: #7ec8ff;
+      border: 1px solid rgba(0, 0, 0, 0.25);
+      margin-top: -4.5px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+    }
+    input[type="range"]::-moz-range-track {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: #7ec8ff;
+      border: 1px solid rgba(0, 0, 0, 0.25);
+    }
+
+    .foot {
+      border-top: 1px solid var(--hair);
+      padding: 8px 10px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      display: grid;
+      gap: 6px;
+    }
+    .btn {
+      height: 30px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 800;
+      font-size: 11px;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+    }
+    .btn.primary {
+      border-color: rgba(126, 200, 255, 0.28);
+      background: rgba(126, 200, 255, 0.12);
+    }
+    .btnRow {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .hint {
+      margin: 0;
+      font-size: 9px;
+      line-height: 1.35;
+      color: rgba(255, 255, 255, 0.38);
+    }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <div id="road" aria-hidden="true"></div>
+  </div>
+
+  <audio id="fxPlayer" preload="none"></audio>
+
+  <button id="cog" type="button" aria-label="Settings" title="">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+      <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.7"/>
+      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.61V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.61 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.61-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.61-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H12a1.7 1.7 0 0 0 1-1.61V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.61 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V12c0 .69.41 1.3 1.05 1.58H21a2 2 0 1 1 0 4h-.09c-.64.28-1.05.89-1.05 1.58Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <div id="scrim" aria-hidden="true"></div>
+
+  <aside id="panel" aria-hidden="true">
+    <div class="ph">
+      <div>
+        <h1>Layout</h1>
+        <small>5 quick taps on the cog to open</small>
+      </div>
+      <button id="btnClose" type="button" aria-label="Close">×</button>
+    </div>
+
+    <div id="carEditors"></div>
+
+    <div class="foot">
+      <button id="btnAdd" class="btn primary" type="button">+ Add car</button>
+      <div class="btnRow">
+        <button id="btnCopy" class="btn" type="button">Copy JSON</button>
+        <button id="btnReset" class="btn" type="button">Reset</button>
+      </div>
+      <p class="hint">Road glow + car focus save here (GLOW ANIM / ANIM STRENGTH optional). Per-car: TOP / LEFT / WIDTH. Align tires to the glow by eye. Reduce Motion disables road pulse. <code>?layout=1</code> opens panel.</p>
+    </div>
+  </aside>
+
+  <script>
+    (function () {
+      const STORAGE_CARS = "carkioskCarsV1";
+      const STORAGE_ROAD = "carkioskRoadV2";
+      const STORAGE_FOCUS = "carkioskFocusV1";
+
+      const stage = document.getElementById("stage");
+      const road = document.getElementById("road");
+      const fx = document.getElementById("fxPlayer");
+      const cog = document.getElementById("cog");
+      const scrim = document.getElementById("scrim");
+      const panel = document.getElementById("panel");
+      const carEditors = document.getElementById("carEditors");
+
+      function uid() {
+        return (crypto.randomUUID && crypto.randomUUID()) || "id_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+      }
+
+      function defaultCars() {
+        return [
+          { id: uid(), img: "cars/car1.png", sound: "sounds/engine1.mp3", top: 43.5, left: 12, width: 30 },
+          { id: uid(), img: "cars/car2.png", sound: "sounds/engine2.mp3", top: 48, left: 38, width: 22 },
+          { id: uid(), img: "cars/car3.png", sound: "sounds/engine3.mp3", top: 40, left: 62, width: 22 },
+        ];
+      }
+
+      function defaultRoad() {
+        return {
+          opacityPct: 88,
+          widthPct: 72,
+          bottomVh: 43,
+          heightPx: 3,
+          glowAnimOn: true,
+          glowAnimPct: 75,
+        };
+      }
+
+      function defaultFocus() {
+        return { idleOpacityPct: 66, dimOpacityPct: 42, wobblePct: 28 };
+      }
+
+      function loadCars() {
+        try {
+          const raw = localStorage.getItem(STORAGE_CARS);
+          if (!raw) return defaultCars();
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed) || parsed.length === 0) return defaultCars();
+          return parsed.map((c) => ({
+            id: String(c.id || uid()),
+            img: String(c.img),
+            sound: String(c.sound),
+            top: Number(c.top),
+            left: Number(c.left),
+            width: Number(c.width),
+          }));
+        } catch {
+          return defaultCars();
+        }
+      }
+
+      function loadRoad() {
+        try {
+          const raw = localStorage.getItem(STORAGE_ROAD);
+          if (!raw) return defaultRoad();
+          const o = JSON.parse(raw);
+          return {
+            opacityPct: Math.max(0, Math.min(100, Number(o.opacityPct ?? 88))),
+            widthPct: Math.max(10, Math.min(100, Number(o.widthPct ?? 72))),
+            bottomVh: Math.max(0, Math.min(95, Number(o.bottomVh ?? 43))),
+            heightPx: Math.max(1, Math.min(24, Number(o.heightPx ?? 3))),
+            glowAnimOn: o.glowAnimOn !== false,
+            glowAnimPct: Math.max(0, Math.min(100, Number(o.glowAnimPct ?? 75))),
+          };
+        } catch {
+          return defaultRoad();
+        }
+      }
+
+      function loadFocus() {
+        try {
+          const raw = localStorage.getItem(STORAGE_FOCUS);
+          if (!raw) return defaultFocus();
+          const o = JSON.parse(raw);
+          let idle = Math.max(20, Math.min(100, Number(o.idleOpacityPct ?? 66)));
+          let dim = Math.max(10, Math.min(100, Number(o.dimOpacityPct ?? 42)));
+          if (dim >= idle) dim = Math.max(10, idle - 6);
+          const wobblePct = Math.max(0, Math.min(100, Number(o.wobblePct ?? 28)));
+          return { idleOpacityPct: idle, dimOpacityPct: dim, wobblePct };
+        } catch {
+          return defaultFocus();
+        }
+      }
+
+      let state = {
+        cars: loadCars(),
+        road: loadRoad(),
+        focus: loadFocus(),
+      };
+
+      function saveCars() {
+        localStorage.setItem(STORAGE_CARS, JSON.stringify(state.cars));
+      }
+      function saveRoad() {
+        localStorage.setItem(STORAGE_ROAD, JSON.stringify(state.road));
+      }
+      function saveFocus() {
+        localStorage.setItem(STORAGE_FOCUS, JSON.stringify(state.focus));
+      }
+
+      function applyRoadVars() {
+        const r = state.road;
+        stage.style.setProperty("--road-opacity", String(r.opacityPct / 100));
+        stage.style.setProperty("--road-width", r.widthPct + "%");
+        stage.style.setProperty("--road-bottom", r.bottomVh + "vh");
+        stage.style.setProperty("--road-height", r.heightPx + "px");
+        const amp = Math.max(0, Math.min(1, Number(r.glowAnimPct ?? 75) / 100));
+        stage.style.setProperty("--road-glow-amp", String(amp));
+
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        road.classList.toggle("road-anim", !!r.glowAnimOn && !reduceMotion);
+
+        road.style.display = r.opacityPct <= 0 ? "none" : "";
+      }
+
+      function applyFocusVars() {
+        const f = state.focus;
+        stage.style.setProperty("--car-idle-opacity", String(f.idleOpacityPct / 100));
+        stage.style.setProperty("--car-dim-opacity", String(f.dimOpacityPct / 100));
+        const w = Math.max(0, Math.min(100, Number(f.wobblePct ?? 28))) / 100;
+        const rot = 0.65 * w;
+        const scale = 1 + 0.035 * w;
+        stage.style.setProperty("--car-wobble-rot", rot + "deg");
+        stage.style.setProperty("--car-wobble-scale", String(scale));
+      }
+
+      function nextIndexFromPaths() {
+        let max = 0;
+        const re = /car(\d+)\.png$/i;
+        for (const c of state.cars) {
+          const m = re.exec(c.img.split("/").pop() || "");
+          if (m) max = Math.max(max, parseInt(m[1], 10));
+        }
+        return Math.max(1, max + 1);
+      }
+
+      function setPanel(on) {
+        panel.classList.toggle("on", on);
+        scrim.classList.toggle("on", on);
+        panel.setAttribute("aria-hidden", on ? "false" : "true");
+        scrim.setAttribute("aria-hidden", on ? "false" : "true");
+      }
+
+      function clearPlaybackVisual() {
+        stage.querySelectorAll("img.car").forEach((c) => c.classList.remove("is-playing"));
+        stage.classList.remove("is-audio-playing");
+      }
+
+      function renderStageCars() {
+        for (const el of Array.from(stage.querySelectorAll("img.car"))) el.remove();
+        for (const c of state.cars) {
+          const img = document.createElement("img");
+          img.className = "car";
+          img.dataset.id = c.id;
+          img.dataset.sound = c.sound;
+          img.src = c.img;
+          img.alt = "";
+          img.style.top = c.top + "%";
+          img.style.left = c.left + "%";
+          img.style.width = c.width + "vmin";
+          stage.appendChild(img);
+        }
+        wireCarAudio();
+      }
+
+      function wireCarAudio() {
+        stage.querySelectorAll("img.car").forEach((img) => {
+          const go = (e) => {
+            e.preventDefault();
+            const src = img.dataset.sound;
+            if (!src) return;
+
+            clearPlaybackVisual();
+            img.classList.add("is-playing");
+            stage.classList.add("is-audio-playing");
+
+            fx.pause();
+            fx.src = src;
+            fx.currentTime = 0;
+            fx.play().catch(() => {
+              clearPlaybackVisual();
+            });
+          };
+          img.addEventListener("touchend", go, { passive: false });
+          img.addEventListener("click", go);
+        });
+      }
+
+      fx.addEventListener("ended", clearPlaybackVisual);
+      fx.addEventListener("error", clearPlaybackVisual);
+
+      function fmtRow(field, val) {
+        if (field === "top" || field === "left") return Number(val).toFixed(1).replace(/\.0$/, "") + "%";
+        return Number(val).toFixed(1).replace(/\.0$/, "") + "vmin";
+      }
+
+      function bindRange(id, min, max, step, getVal, onChange, fmt) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.min = String(min);
+        el.max = String(max);
+        el.step = String(step);
+        el.value = String(getVal());
+        const u = el.closest(".row") && el.closest(".row").querySelector(".u");
+        if (u) u.textContent = fmt(getVal());
+        el.addEventListener("input", () => {
+          const v = parseFloat(el.value);
+          onChange(v);
+          if (u) u.textContent = fmt(getVal());
+        });
+      }
+
+      function renderEditors() {
+        carEditors.innerHTML = "";
+
+        const roadWrap = document.createElement("div");
+        roadWrap.innerHTML =
+          '<div class="sectionLabel">Road glow</div>' +
+          '<div class="roadCard" id="roadCard"></div>' +
+          '<div class="sectionLabel">Car focus</div>' +
+          '<div class="roadCard" id="focusCard"></div>' +
+          '<div class="sectionLabel">Cars</div>';
+        carEditors.appendChild(roadWrap);
+
+        const roadCard = document.getElementById("roadCard");
+        const focusCard = document.getElementById("focusCard");
+
+        function addEditorRow(host, id, labelText, min, max, step, get, set, fmtVal, persist) {
+          const row = document.createElement("div");
+          row.className = "row";
+          row.innerHTML =
+            '<label for="' + id + '" class="rowLbl">' + labelText + "</label>" +
+            '<input id="' + id + '" type="range" />' +
+            '<div class="u"></div>';
+          host.appendChild(row);
+          bindRange(id, min, max, step, get, (v) => {
+            set(v);
+            persist();
+          }, fmtVal);
+        }
+
+        const r = state.road;
+        const persistRoad = () => {
+          saveRoad();
+          applyRoadVars();
+        };
+        addEditorRow(
+          roadCard,
+          "roadOpacity",
+          "OPACITY",
+          0,
+          100,
+          1,
+          () => r.opacityPct,
+          (v) => {
+            r.opacityPct = v;
+          },
+          (v) => Math.round(v) + "%",
+          persistRoad
+        );
+        addEditorRow(
+          roadCard,
+          "roadWidth",
+          "WIDTH",
+          10,
+          100,
+          1,
+          () => r.widthPct,
+          (v) => {
+            r.widthPct = v;
+          },
+          (v) => Math.round(v) + "%",
+          persistRoad
+        );
+        addEditorRow(
+          roadCard,
+          "roadBottom",
+          "BOTTOM",
+          0,
+          95,
+          0.5,
+          () => r.bottomVh,
+          (v) => {
+            r.bottomVh = v;
+          },
+          (v) => v.toFixed(1) + "vh",
+          persistRoad
+        );
+        addEditorRow(
+          roadCard,
+          "roadHeight",
+          "THICKNESS",
+          1,
+          24,
+          1,
+          () => r.heightPx,
+          (v) => {
+            r.heightPx = v;
+          },
+          (v) => Math.round(v) + "px",
+          persistRoad
+        );
+
+        function syncRoadGlowIntensityRow() {
+          const rng = document.getElementById("roadGlowIntensity");
+          if (!rng) return;
+          const on = !!r.glowAnimOn;
+          rng.disabled = !on;
+          const rr = rng.closest(".row");
+          if (rr) rr.classList.toggle("row-muted", !on);
+        }
+
+        const toggleRow = document.createElement("div");
+        toggleRow.className = "roadAnimToggleRow";
+        toggleRow.innerHTML =
+          '<label class="roadAnimLbl" for="roadGlowAnimOn">GLOW ANIM</label>' +
+          '<input type="checkbox" id="roadGlowAnimOn" aria-label="Road glow animation" />';
+        roadCard.appendChild(toggleRow);
+        const glowCb = document.getElementById("roadGlowAnimOn");
+        glowCb.checked = !!r.glowAnimOn;
+        glowCb.addEventListener("change", () => {
+          r.glowAnimOn = glowCb.checked;
+          persistRoad();
+          syncRoadGlowIntensityRow();
+        });
+
+        addEditorRow(
+          roadCard,
+          "roadGlowIntensity",
+          "ANIM STRENGTH",
+          0,
+          100,
+          1,
+          () => r.glowAnimPct,
+          (v) => {
+            r.glowAnimPct = v;
+          },
+          (v) => Math.round(v) + "%",
+          persistRoad
+        );
+        syncRoadGlowIntensityRow();
+
+        const f = state.focus;
+        const persistFocus = () => {
+          saveFocus();
+          applyFocusVars();
+        };
+        addEditorRow(
+          focusCard,
+          "focusIdle",
+          "IDLE OPACITY",
+          20,
+          100,
+          1,
+          () => f.idleOpacityPct,
+          (v) => {
+            f.idleOpacityPct = v;
+            if (f.dimOpacityPct >= v) {
+              f.dimOpacityPct = Math.max(10, v - 8);
+              const d = document.getElementById("focusDim");
+              if (d) {
+                d.value = String(f.dimOpacityPct);
+                const row = d.closest(".row");
+                if (row) {
+                  const u = row.querySelector(".u");
+                  if (u) u.textContent = Math.round(f.dimOpacityPct) + "%";
+                }
+              }
+            }
+          },
+          (v) => Math.round(v) + "%",
+          persistFocus
+        );
+        addEditorRow(
+          focusCard,
+          "focusDim",
+          "DIM OPACITY",
+          10,
+          100,
+          1,
+          () => f.dimOpacityPct,
+          (v) => {
+            f.dimOpacityPct = Math.min(v, f.idleOpacityPct - 1);
+            const el = document.getElementById("focusDim");
+            if (el) {
+              el.value = String(f.dimOpacityPct);
+              const row = el.closest(".row");
+              if (row) {
+                const u = row.querySelector(".u");
+                if (u) u.textContent = Math.round(f.dimOpacityPct) + "%";
+              }
+            }
+          },
+          (v) => Math.round(Math.min(v, f.idleOpacityPct - 1)) + "%",
+          persistFocus
+        );
+        addEditorRow(
+          focusCard,
+          "focusWobble",
+          "WOBBLE",
+          0,
+          100,
+          1,
+          () => f.wobblePct,
+          (v) => {
+            f.wobblePct = v;
+          },
+          (v) => Math.round(v) + "%",
+          persistFocus
+        );
+
+        state.cars.forEach((c, idx) => {
+          const wrap = document.createElement("div");
+          wrap.className = "card";
+          wrap.dataset.id = c.id;
+
+          const top = document.createElement("div");
+          top.className = "cardTop";
+          top.innerHTML =
+            `<div style="min-width:0">
+              <div class="cardTitle">Car ${idx + 1}</div>
+              <div class="miniPath" title="${c.img}">${c.img}</div>
+              <div class="miniPath" title="${c.sound}">${c.sound}</div>
+            </div>`;
+
+          const del = document.createElement("button");
+          del.type = "button";
+          del.className = "btnIcon";
+          del.textContent = "×";
+          del.title = "Remove car";
+          del.disabled = state.cars.length <= 1;
+          del.addEventListener("click", () => {
+            state.cars = state.cars.filter((x) => x.id !== c.id);
+            saveCars();
+            renderStageCars();
+            renderEditors();
+          });
+
+          top.appendChild(del);
+          wrap.appendChild(top);
+
+          function addSlider(field, labelText, min, max, step) {
+            const row = document.createElement("div");
+            row.className = "row";
+            const inputId = "car_" + idx + "_" + field;
+            const lab = document.createElement("label");
+            lab.className = "rowLbl";
+            lab.htmlFor = inputId;
+            lab.textContent = labelText;
+            const range = document.createElement("input");
+            range.type = "range";
+            range.id = inputId;
+            range.min = String(min);
+            range.max = String(max);
+            range.step = String(step);
+            range.value = String(c[field]);
+            const u = document.createElement("div");
+            u.className = "u";
+            u.textContent = fmtRow(field, c[field]);
+
+            range.addEventListener("input", () => {
+              const v = parseFloat(range.value);
+              const car = state.cars.find((x) => x.id === c.id);
+              if (!car) return;
+              car[field] = v;
+              u.textContent = fmtRow(field, v);
+              const img = stage.querySelector(`img.car[data-id="${CSS.escape(car.id)}"]`);
+              if (img) {
+                if (field === "top") img.style.top = v + "%";
+                if (field === "left") img.style.left = v + "%";
+                if (field === "width") img.style.width = v + "vmin";
+              }
+              saveCars();
+            });
+
+            row.appendChild(lab);
+            row.appendChild(range);
+            row.appendChild(u);
+            wrap.appendChild(row);
+          }
+
+          addSlider("top", "TOP", 0, 100, 0.5);
+          addSlider("left", "LEFT", 0, 100, 0.5);
+          addSlider("width", "WIDTH", 8, 70, 0.5);
+
+          carEditors.appendChild(wrap);
+        });
+      }
+
+      let tapSeq = 0;
+      let tapLast = 0;
+      function cogTap() {
+        const now = Date.now();
+        if (now - tapLast > 700) tapSeq = 0;
+        tapSeq++;
+        tapLast = now;
+        if (tapSeq >= 5) {
+          tapSeq = 0;
+          setPanel(true);
+          renderEditors();
+        }
+      }
+      cog.addEventListener("pointerup", (e) => {
+        e.preventDefault();
+        cogTap();
+      });
+
+      document.getElementById("btnClose").addEventListener("click", () => setPanel(false));
+      scrim.addEventListener("click", () => setPanel(false));
+
+      document.getElementById("btnAdd").addEventListener("click", () => {
+        const n = nextIndexFromPaths();
+        state.cars.push({
+          id: uid(),
+          img: `cars/car${n}.png`,
+          sound: `sounds/engine${n}.mp3`,
+          top: 52,
+          left: 10 + (state.cars.length % 6) * 12,
+          width: 22,
+        });
+        saveCars();
+        renderStageCars();
+        renderEditors();
+      });
+
+      document.getElementById("btnReset").addEventListener("click", () => {
+        if (!confirm("Reset cars, road, and focus sliders to defaults?")) return;
+        state.cars = defaultCars();
+        state.road = defaultRoad();
+        state.focus = defaultFocus();
+        saveCars();
+        saveRoad();
+        saveFocus();
+        applyRoadVars();
+        applyFocusVars();
+        renderStageCars();
+        renderEditors();
+      });
+
+      document.getElementById("btnCopy").addEventListener("click", async () => {
+        const txt = JSON.stringify({ cars: state.cars, road: state.road, focus: state.focus }, null, 2);
+        try {
+          await navigator.clipboard.writeText(txt);
+          const b = document.getElementById("btnCopy");
+          const old = b.textContent;
+          b.textContent = "Copied";
+          setTimeout(() => (b.textContent = old), 900);
+        } catch {
+          prompt("Copy:", txt);
+        }
+      });
+
+      applyRoadVars();
+      applyFocusVars();
+      renderStageCars();
+      setPanel(false);
+
+      const p = new URLSearchParams(location.search);
+      if (p.has("layout")) {
+        setPanel(true);
+        renderEditors();
+      }
+    })();
+  </script>
+</body>
+</html>
