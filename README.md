@@ -2,12 +2,14 @@
 
 A lightweight **touch kiosk**: cars sit on a “road” glow over a background image; **tap a car** to play its engine sound. Designed as a **proof-of-concept** for an interactive activity — single-page HTML, no build step.
 
+**Live (GitHub Pages):** [iphobbes.github.io/CarSound/](https://iphobbes.github.io/CarSound/) · Layout panel: […CarSound/?layout=1](https://iphobbes.github.io/CarSound/?layout=1)
+
 ---
 
 ## For participants (end users)
 
 1. **Open the experience**  
-   Someone will load `CarSound` on a tablet or kiosk (usually fullscreen).
+   Someone will load CarSound on a tablet or kiosk (usually fullscreen).
 
 2. **Tap a car**  
    Each car plays its own sound. Only one sound plays at a time.
@@ -23,16 +25,15 @@ A lightweight **touch kiosk**: cars sit on a “road” glow over a background i
 
 ### Running it
 
-- **Important:** Open **`index.html` from the project root** (`CarSound/index.html`), not from inside `Assets/`.  
-  Paths assume **`cars/`**, **`sounds/`**, and **`background.jpg`** live **next to** `index.html`.
+- **Repo layout:** **`index.html`** at this repo root, beside **`cars/`**, **`sounds/`**, and **`background.jpg`** — that’s what the page expects.
 
-- **Local file:** Double-click `index.html` or use “Open file” in the browser. Some browsers restrict autoplay/audio less once the user has tapped.
+- **Local file:** Double-click `index.html` or use “Open file” in the browser. Some browsers restrict audio until the user has tapped.
 
-- **More reliable:** Serve the folder with any static server (e.g. `npx serve .` from the `CarSound` folder) so URLs stay consistent on tablets.
+- **More reliable (especially iPad):** Serve this folder with any static server (e.g. `npx serve .` from the project folder) or use the **hosted URL** above so paths behave like a real site.
 
 ### Layout / tuning (hidden controls)
 
-- **Open the Layout panel:** **five quick taps** on the **gear** (bottom-right), **or** add **`?layout=1`** to the URL (e.g. `index.html?layout=1`).
+- **Open the Layout panel:** **five quick taps** on the **gear** (bottom-right), **or** add **`?layout=1`** to the URL.
 
 - **Road glow:** opacity, width, vertical position, line thickness, optional **glow animation** (toggle + strength).
 
@@ -52,13 +53,13 @@ A lightweight **touch kiosk**: cars sit on a “road” glow over a background i
 
 | Location | Role |
 |----------|------|
-| **`background.jpg`** (next to `index.html`) | Full-screen backdrop |
+| **`background.png`** or **`background.jpg`** (repo root) | Full-screen backdrop — **`background.png` is tried first**, then **`background.jpg`** |
 | **`cars/carN.png`** | Car images |
 | **`sounds/engineN.mp3`** | Audio per car |
 
 **Adding a car:** **+ Add car** picks the next index (`car4.png` / `engine4.mp3`, etc.). Put matching files in **`cars/`** and **`sounds/`** before relying on that slot.
 
-**`Assets/` folder (here):** Working PSDs, older experiments (`Old index/`), or exports — **not** what the live page loads by default. The running POC reads from the **repo root** paths above.
+**`Assets/` folder:** Working PSDs and other exports — **not** what the live page loads by default. Keep PSDs here for design work; the running POC reads backgrounds and cars from the **repo root** paths above.
 
 ### Accessibility
 
@@ -68,11 +69,11 @@ A lightweight **touch kiosk**: cars sit on a “road” glow over a background i
 
 ## Technical snapshot
 
-- **Single file:** `index.html` (inline CSS + JS).
+- **Single file:** `index.html` (inline CSS + JS), plus static assets: **`favicon.svg`**, **`background.png`** / **`background.jpg`**, **`cars/`**, **`sounds/`**.
 
-- **No npm / build** — copy the folder to a device or host statically.
+- **No npm / build** — copy the folder to a device or host statically (e.g. GitHub Pages).
 
-- **Modern browsers:** Uses `localStorage`, CSS variables, and Web Audio via `<audio>`.
+- **Modern browsers:** Uses `localStorage`, CSS variables, and `<audio>` for playback.
 
 ---
 

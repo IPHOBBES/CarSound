@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true">
+  <!-- Simple white side-view car for favicon -->
+  <path fill="#ffffff" d="M5 15h22v4H5v-4zm1-6l3-5h12l3 5v6H6v-6z"/>
+  <circle cx="11" cy="22" r="4.25" fill="#ffffff"/>
+  <circle cx="21" cy="22" r="4.25" fill="#ffffff"/>
+</svg>
