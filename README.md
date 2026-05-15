@@ -39,7 +39,7 @@ A lightweight **touch kiosk**: cars sit on a “road” glow over a background i
 
 - **Car focus:** idle vs dimmed opacity when a sound is playing, plus **wobble** strength on the active car.
 
-- **Per car:** position (**TOP / LEFT**) and size (**WIDTH**); add/remove cars; paths shown for image + sound files.
+- **Per car:** **UP / DOWN** and **LEFT / RIGHT** (% placement on the stage) and **WIDTH**; add/remove cars; paths shown for image + sound files.
 
 ### Persistence & reset
 

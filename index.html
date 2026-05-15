@@ -459,7 +459,7 @@
         <button id="btnCopy" class="btn" type="button">Copy JSON</button>
         <button id="btnReset" class="btn" type="button">Reset</button>
       </div>
-      <p class="hint">Road glow + car focus save here (GLOW ANIM / ANIM STRENGTH optional). Per-car: TOP / LEFT / WIDTH. Align tires to the glow by eye. Reduce Motion disables road pulse. <code>?layout=1</code> opens panel.</p>
+      <p class="hint">Road glow + car focus save here (GLOW ANIM / ANIM STRENGTH optional). Per-car: UP / DOWN, LEFT / RIGHT, WIDTH. Align tires to the glow by eye. Reduce Motion disables road pulse. <code>?layout=1</code> opens panel.</p>
     </div>
   </aside>
 
@@ -970,8 +970,8 @@
             wrap.appendChild(row);
           }
 
-          addSlider("top", "TOP", 0, 100, 0.5);
-          addSlider("left", "LEFT", 0, 100, 0.5);
+          addSlider("top", "UP / DOWN", 0, 100, 0.5);
+          addSlider("left", "LEFT / RIGHT", 0, 100, 0.5);
           addSlider("width", "WIDTH", 8, 70, 0.5);
 
           carEditors.appendChild(wrap);
