@@ -459,7 +459,7 @@
         <button id="btnCopy" class="btn" type="button">Copy JSON</button>
         <button id="btnReset" class="btn" type="button">Reset</button>
       </div>
-      <p class="hint">Road glow + car focus save here (GLOW ANIM / ANIM STRENGTH optional). Per-car: UP / DOWN, LEFT / RIGHT, WIDTH. Align tires to the glow by eye. Reduce Motion disables road pulse. <code>?layout=1</code> opens panel.</p>
+      <p class="hint">Road glow + car focus save here (GLOW ANIM / ANIM STRENGTH optional). Per-car: UP / DOWN, LEFT / RIGHT, SIZE. Align tires to the glow by eye. Reduce Motion disables road pulse. <code>?layout=1</code> opens panel.</p>
     </div>
   </aside>
 
@@ -501,8 +501,6 @@
       function defaultCars() {
         return [
           { id: uid(), img: "cars/car1.png", sound: "sounds/engine1.mp3", top: 43.5, left: 12, width: 30 },
-          { id: uid(), img: "cars/car2.png", sound: "sounds/engine2.mp3", top: 48, left: 38, width: 22 },
-          { id: uid(), img: "cars/car3.png", sound: "sounds/engine3.mp3", top: 40, left: 62, width: 22 },
         ];
       }
 
@@ -972,7 +970,7 @@
 
           addSlider("top", "UP / DOWN", 0, 100, 0.5);
           addSlider("left", "LEFT / RIGHT", 0, 100, 0.5);
-          addSlider("width", "WIDTH", 8, 70, 0.5);
+          addSlider("width", "SIZE", 8, 70, 0.5);
 
           carEditors.appendChild(wrap);
         });

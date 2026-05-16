@@ -39,7 +39,7 @@ A lightweight **touch kiosk**: cars sit on a “road” glow over a background i
 
 - **Car focus:** idle vs dimmed opacity when a sound is playing, plus **wobble** strength on the active car.
 
-- **Per car:** **UP / DOWN** and **LEFT / RIGHT** (% placement on the stage) and **WIDTH**; add/remove cars; paths shown for image + sound files.
+- **Per car:** **UP / DOWN** and **LEFT / RIGHT** (% placement on the stage) and **SIZE**; add/remove cars; paths shown for image + sound files.
 
 ### Persistence & reset
 
@@ -57,7 +57,11 @@ A lightweight **touch kiosk**: cars sit on a “road” glow over a background i
 | **`cars/carN.png`** | Car images |
 | **`sounds/engineN.mp3`** | Audio per car |
 
-**Adding a car:** **+ Add car** picks the next index (`car4.png` / `engine4.mp3`, etc.). Put matching files in **`cars/`** and **`sounds/`** before relying on that slot.
+**Default cars:** The shipped repo includes **`cars/car1.png`** and **`sounds/engine1.mp3`** only — the app defaults to **one car** so nothing 404s. To use more cars, add matching **`car2.png` / `engine2.mp3`**, etc., then use **+ Add car** or edit paths in the layout panel.
+
+**Broken image icons (e.g. on iPad):** The browser could not load that car’s **`img`** URL (file missing on the server, wrong path, or old **`localStorage`** still listing cars you removed from the repo). Fix assets or tap **Reset** in the layout panel to reload defaults.
+
+**Adding a car:** **+ Add car** picks the next index (`car2.png` / `engine2.mp3`, etc.). Put matching files in **`cars/`** and **`sounds/`** before relying on that slot.
 
 **`Assets/` folder:** Working PSDs and other exports — **not** what the live page loads by default. Keep PSDs here for design work; the running POC reads backgrounds and cars from the **repo root** paths above.
 
